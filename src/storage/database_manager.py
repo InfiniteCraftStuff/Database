@@ -1,12 +1,12 @@
 import sqlite3
-from _typeshed import StrOrBytesPath
-from typing import Iterable, LiteralString, Generic, TypeVar
-
-T = TypeVar("T")
+from typing import NamedTuple, Iterable, LiteralString, Generic, TypeVar
 
 
-class DatabaseManager(Generic[T]):
-    def __init__(self, db_path: StrOrBytesPath):
+TSchema = TypeVar("TSchema")
+
+
+class DatabaseManager(Generic[TSchema]):
+    def __init__(self, db_path: str):
         self.db_path = db_path
 
     def _connect(self):
@@ -41,7 +41,7 @@ class DatabaseManager(Generic[T]):
         columns: tuple[LiteralString, ...] | None = None,
         condition: LiteralString | None = None,
         params: Iterable[int | float | str | None] = (),
-    ) -> list[T]:
+    ) -> list[TSchema]:
         columns_str = ", ".join(columns) if columns else "*"
         query = (
             f"SELECT {columns_str} FROM {table} WHERE {condition}"
@@ -51,27 +51,70 @@ class DatabaseManager(Generic[T]):
         return self._fetch(query, params)
 
 
-class ElementsDatabaseManager(DatabaseManager[tuple[str, str, str]]):
+class Element(NamedTuple):
+    id: str
+    name: str
+    emoji: str
+
+
+class ElementsDatabaseManager(DatabaseManager[Element]):
     def __init__(self, db_path):
         super().__init__(db_path)
-        self._TABLE = "recipes"
+        self._TABLE = "elements"
 
     def add_element(self, name: str, emoji: str):
         self._insert_record(self._TABLE, ("id", name), ("name", name), ("emoji", emoji))
 
     def get_element(self, id: str):
         records = self._get_records(self._TABLE, condition="id = ?", params=(id,))
-        return records[0] if records else None
+        return Element(*records[0]) if records else None
+
+    def bulk_add_elements(self, elements: list[tuple[str, str]]):
+        records = [(element_id, element_id, emoji) for element_id, emoji in elements]
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.executemany(f"INSERT INTO {self._TABLE} (id, name, emoji) VALUES (?, ?, ?)", records)
+            conn.commit()
+
+    def get_all_elements(self, offset: int = 0, limit: int = 100):
+        query = f"SELECT id, name, emoji FROM {self._TABLE} LIMIT ? OFFSET ?"
+        records = self._fetch(query, (limit, offset))
+        return [Element(*record) for record in records]
 
 
-class RecipesDatabaseManager(DatabaseManager[tuple[str, str, str, str]]):
+class Recipe(NamedTuple):
+    id: str
+    a: str
+    b: str
+    result: str
+
+
+class RecipesDatabaseManager(DatabaseManager[Recipe]):
     def __init__(self, db_path):
         super().__init__(db_path)
         self._TABLE = "recipes"
 
     def add_recipes(self, a: str, b: str, result: str):
-        self._insert_record(self._TABLE, ("id", result), ("a", a), ("b", b), ("result", result))
+        if a > b:
+            a, b = b, a
+        id = f"{a}={b}"
+        self._insert_record(self._TABLE, ("id", id), ("a", a), ("b", b), ("result", result))
 
-    def get_recipe(self, id: str):
-        records = self._get_records(self._TABLE, condition="id = ?", params=(id,))
-        return records[0] if records else None
+    def get_recipes(self, name: str):
+        records = self._get_records(self._TABLE, condition="name = ?", params=(name,))
+        return [Recipe(*record) for record in records] if records else None
+
+    def bulk_add_recipes(self, recipes: list[tuple[str, str, str]]):
+        records: list[Recipe] = []
+        for a, b, result in recipes:
+            if a > b:
+                a, b = b, a
+            id = f"{a}={b}"
+            records.append(Recipe(id, a, b, result))
+
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.executemany(
+                f"INSERT INTO {self._TABLE} (id, a, b, result) VALUES (?, ?, ?, ?)", records
+            )
+            conn.commit()

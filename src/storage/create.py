@@ -4,7 +4,7 @@ import sqlite3
 import os
 
 
-SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(SRC_DIR)
 
 DB_PATH = os.path.join(BASE_DIR, "storage", "elements.db")
@@ -42,11 +42,7 @@ def main():
         create_table(
             conn,
             "elements",
-            (
-                ("id", "TEXT", "PRIMARY KEY"),
-                ("name", "TEXT", "NOT NULL"),
-                ("emoji", "TEXT", None),
-            ),  # elements
+            (("id", "TEXT", "PRIMARY KEY"), ("name", "TEXT", "NOT NULL"), ("emoji", "TEXT", None)),
         )
 
         create_table(
