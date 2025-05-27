@@ -1,59 +1,67 @@
 import requests
+import urllib.parse
 import time
+import logging
 
 from typing import TypedDict
 
-import logging
-
 from storage.database_manager import ElementsDatabaseManager, RecipesDatabaseManager
-
-from temp.recipes import Recipe
 
 
 logger = logging.getLogger(__name__)
 
 
-class ApiResponseDate(TypedDict):
-    recipes: list[Recipe]
+class ApiElement(TypedDict):
+    id: str
+    emoji: str
 
 
-def fetch_recipes(element_db: str) -> ApiResponseDate:
-    url = f"https://infinibrowser.wiki/api/recipes?id={element_db}"
-    retries = 0
-    while retries < 3:
+class ApiResponseData(TypedDict):
+    recipes: list[tuple[ApiElement, ApiElement]]
+
+
+def fetch_recipes(element_db: str) -> ApiResponseData:
+    MAX_RETRIES = 2
+    RETRY_DELAYS = (0.1, 0.25)
+
+    url = f"https://infinibrowser.wiki/api/recipes?id={urllib.parse.quote(element_db)}"
+
+    for retries in range(MAX_RETRIES + 1):
         try:
             response = requests.get(url)
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 429:
-                if retries < 2:
-                    delay = 0.1 if retries == 0 else 0.25
+                if retries < MAX_RETRIES:
+                    delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
                     logger.warning(f"Rate limited. Retrying in {delay} seconds...")
-
                     time.sleep(delay)
-                    retries += 1
+                    continue
                 else:
                     logger.error(
-                        f"Error fetching recipes for element {element_db} after multiple retries (429): [{response.status_code}] {response.reason}"
+                        f"Error fetching recipes for element {element_db} after multiple retries (429): "
+                        f"[{response.status_code}] {response.reason}"
                     )
                     return {"recipes": []}
             else:
                 logger.error(
-                    f"Error fetching recipes for element {element_db}: [{response.status_code}] {response.reason}"
+                    f"Error fetching recipes for element {element_db}: "
+                    f"[{response.status_code}] {response.reason}"
                 )
                 return {"recipes": []}
-        except requests.exceptions.RequestException as e:
-            if retries < 2:
-                delay = 0.1 if retries == 0 else 0.25
-                logger.warning(f"Request failed ({e}). Retrying in {delay} seconds...")
 
+        except requests.exceptions.RequestException as e:
+            if retries < MAX_RETRIES:
+                delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
+                logger.warning(f"Request failed ({e}). Retrying in {delay} seconds...")
                 time.sleep(delay)
-                retries += 1
+                continue
             else:
                 logger.error(
                     f"Error fetching recipes for element {element_db} after multiple retries: {e}"
                 )
                 return {"recipes": []}
+
     return {"recipes": []}
 
 
