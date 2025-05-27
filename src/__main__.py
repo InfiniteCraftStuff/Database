@@ -2,7 +2,8 @@ import os
 
 import logging
 
-from savefile_processor import process
+from savefile_processor import process  # noqa: F401
+from scrape_ib import scrape  # noqa: F401
 
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,12 +21,10 @@ logging.basicConfig(
 
 
 def main():
-    IC_DIR = r"C:\Users\roman\OneDrive\Personal\GitHub\InfiniteCraftStuff"
-    SAVEFILE_REL_PATH = r"InfiniteCraftSavefiles\Savefiles\Kit\2025\01\31\23-15\infinitecraft.json"
+    OFFSET = 37_000
+    LIMIT = 263_000
 
-    SAVEFILE_PATH = rf"{IC_DIR}\{SAVEFILE_REL_PATH}"
-
-    process(SAVEFILE_PATH, DB_PATH)
+    scrape(DB_PATH, OFFSET, LIMIT)
 
 
 if __name__ == "__main__":

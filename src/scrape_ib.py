@@ -1,4 +1,5 @@
 import requests
+import time
 
 from typing import TypedDict
 
@@ -18,21 +19,49 @@ class ApiResponseDate(TypedDict):
 
 def fetch_recipes(element_db: str) -> ApiResponseDate:
     url = f"https://infinibrowser.wiki/api/recipes?id={element_db}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        logger.error(
-            f"Error fetching recipes for element {element_db}: [{response.status_code}] {response.reason}"
-        )
-        return {"recipes": []}
+    retries = 0
+    while retries < 3:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                if retries < 2:
+                    delay = 0.1 if retries == 0 else 0.25
+                    logger.warning(f"Rate limited. Retrying in {delay} seconds...")
+
+                    time.sleep(delay)
+                    retries += 1
+                else:
+                    logger.error(
+                        f"Error fetching recipes for element {element_db} after multiple retries (429): [{response.status_code}] {response.reason}"
+                    )
+                    return {"recipes": []}
+            else:
+                logger.error(
+                    f"Error fetching recipes for element {element_db}: [{response.status_code}] {response.reason}"
+                )
+                return {"recipes": []}
+        except requests.exceptions.RequestException as e:
+            if retries < 2:
+                delay = 0.1 if retries == 0 else 0.25
+                logger.warning(f"Request failed ({e}). Retrying in {delay} seconds...")
+
+                time.sleep(delay)
+                retries += 1
+            else:
+                logger.error(
+                    f"Error fetching recipes for element {element_db} after multiple retries: {e}"
+                )
+                return {"recipes": []}
+    return {"recipes": []}
 
 
-def scrape(db_path: str):
+def scrape(db_path: str, offset: int, limit: int):
     elements_db_manager = ElementsDatabaseManager(db_path)
     recipes_db_manager = RecipesDatabaseManager(db_path)
 
-    all_elements = elements_db_manager.get_all_elements(offset=12_500, limit=500)
+    all_elements = elements_db_manager.get_all_elements(offset=offset, limit=limit)
 
     for element in all_elements:
         element_db = element[0]
