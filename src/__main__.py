@@ -21,8 +21,8 @@ logging.basicConfig(
 
 
 def main():
-    OFFSET = 76_500
-    LIMIT = 3_500
+    OFFSET = 205_000
+    LIMIT = 0
 
     scrape(DB_PATH, OFFSET, LIMIT)
 
