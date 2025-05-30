@@ -1,5 +1,5 @@
 import sqlite3
-from typing import NamedTuple, Iterable, LiteralString, Generic, TypeVar
+from typing import NamedTuple, LiteralString, Generic, TypeVar
 
 
 TSchema = TypeVar("TSchema")
@@ -12,16 +12,16 @@ class DatabaseManager(Generic[TSchema]):
     def _connect(self):
         return sqlite3.connect(self.db_path)
 
-    def _execute(self, query: LiteralString, params: Iterable[int | float | str | None] = ()):
+    def _execute(self, query: LiteralString, params: tuple[int | float | str | None, ...] = ()):
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, tuple(params))
+            cursor.execute(query, params)
             conn.commit()
 
-    def _fetch(self, query: LiteralString, params: Iterable[int | float | str | None] = ()):
+    def _fetch(self, query: LiteralString, params: tuple[int | float | str | None, ...] = ()):
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, tuple(params))
+            cursor.execute(query, params)
             return cursor.fetchall()
 
     def _insert_record(
@@ -40,7 +40,7 @@ class DatabaseManager(Generic[TSchema]):
         table: LiteralString,
         columns: tuple[LiteralString, ...] | None = None,
         condition: LiteralString | None = None,
-        params: Iterable[int | float | str | None] = (),
+        params: tuple[int | float | str | None, ...] = (),
     ) -> list[TSchema]:
         columns_str = ", ".join(columns) if columns else "*"
         query = (

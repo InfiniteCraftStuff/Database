@@ -1,4 +1,5 @@
-from typing import LiteralString, Iterable
+from typing import LiteralString
+from collections.abc import Iterable
 
 import sqlite3
 import os

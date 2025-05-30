@@ -45,8 +45,7 @@ def fetch_recipes(element_db: str) -> ApiResponseData:
                     return {"recipes": []}
             elif response.status_code == 404:
                 logger.error(
-                    f"[{response.status_code}] {response.reason}. "
-                    f"Element {element_db} not found"
+                    f"[{response.status_code}] {response.reason}. Element {element_db} not found"
                 )
                 return {"recipes": []}
             else:
@@ -91,20 +90,22 @@ def scrape(db_path: str, offset: int, limit: int):
             for recipe_pair in recipes:
                 try:
                     first_element = recipe_pair[0]
-                    first_element_db = elements_db_manager.get_element(first_element["id"])
+                    first_element_id = first_element["id"]
+                    first_element_db = elements_db_manager.get_element(first_element_id)
 
                     if not first_element_db:
-                        missing_elements.append((first_element["id"], first_element["emoji"]))
+                        missing_elements.append((first_element_id, first_element["emoji"]))
 
                     second_element = recipe_pair[1]
-                    second_element_db = elements_db_manager.get_element(second_element["id"])
+                    second_element_id = second_element["id"]
+                    second_element_db = elements_db_manager.get_element(second_element_id)
 
                     if not second_element_db:
-                        missing_elements.append((second_element["id"], second_element["emoji"]))
+                        missing_elements.append((second_element_id, second_element["emoji"]))
 
                     result_element_name = element_db[1]  # element[1] is the name of the element
 
-                    recipes_to_add.append((first_element["id"], second_element["id"], result_element_name))
+                    recipes_to_add.append((first_element_id, second_element_id, result_element_name))
 
                 except Exception as e:
                     logger.error(f"Error processing recipe: {recipe_pair}. Error: {e}")
@@ -126,5 +127,5 @@ def scrape(db_path: str, offset: int, limit: int):
                 logger.error(f"Error adding recipes to database: {e}")
 
         except KeyboardInterrupt:
-            logger.warning(f"Interrupted at i={i}, element_db_name={element_db_name}")
+            logger.warning(f"Interrupted at {i:_}, element_db_name={element_db_name}")
             return
