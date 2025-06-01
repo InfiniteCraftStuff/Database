@@ -1,53 +1,73 @@
 import sqlite3
 from typing import NamedTuple, LiteralString, Generic, TypeVar
+from collections.abc import Sequence
 
 
-TSchema = TypeVar("TSchema")
+Params = tuple[int | float | str | None, ...]
+
+TSchema = TypeVar("TSchema", bound=NamedTuple)
 
 
 class DatabaseManager(Generic[TSchema]):
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, table: LiteralString):
         self.db_path = db_path
+        self._TABLE = table
 
     def _connect(self):
         return sqlite3.connect(self.db_path)
 
-    def _execute(self, query: LiteralString, params: tuple[int | float | str | None, ...] = ()):
+    def _execute(self, query: LiteralString, params: Params):
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
 
-    def _fetch(self, query: LiteralString, params: tuple[int | float | str | None, ...] = ()):
+    def _executemany(self, query: LiteralString, seq_of_params: Sequence[Params]):
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.executemany(query, seq_of_params)
+            conn.commit()
+
+    def _fetch(self, query: LiteralString, params: Params):
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return cursor.fetchall()
 
-    def _insert_record(
-        self, table: LiteralString, *pairs: tuple[LiteralString, int | float | str | None]
-    ):
+    def _insert_record(self, *pairs: tuple[LiteralString, int | float | str | None]):
         columns: tuple[LiteralString, ...]
-        params: tuple[int | float | str | None, ...]
+        params: Params
         columns, params = zip(*pairs, strict=True)
         placeholders = ", ".join("?" for _ in params)
         col_names = ", ".join(columns)
-        query = f"INSERT INTO {table} ({col_names}) VALUES ({placeholders})"
+        query = f"INSERT INTO {self._TABLE} ({col_names}) VALUES ({placeholders})"
         self._execute(query, params)
+
+    def _insert_records(self, columns: tuple[LiteralString, ...], records: Sequence[TSchema]):
+        columns_str = ", ".join(columns)
+        placeholders = ", ".join("?" for _ in columns)
+        query = f"INSERT OR IGNORE INTO {self._TABLE} ({columns_str}) VALUES ({placeholders})"
+        self._executemany(query, records)
 
     def _get_records(
         self,
-        table: LiteralString,
         columns: tuple[LiteralString, ...] | None = None,
         condition: LiteralString | None = None,
-        params: tuple[int | float | str | None, ...] = (),
+        params: Params = (),
+        limit: int | None = None,
+        offset: int | None = None,
     ) -> list[TSchema]:
         columns_str = ", ".join(columns) if columns else "*"
-        query = (
-            f"SELECT {columns_str} FROM {table} WHERE {condition}"
-            if condition
-            else f"SELECT {columns_str} FROM {table}"
-        )
+        query = f"SELECT {columns_str} FROM {self._TABLE}"
+        if condition:
+            query += f" WHERE {condition}"
+        if limit is not None:
+            query += " LIMIT ?"
+            params += (limit,)
+        if offset is not None:
+            query += " OFFSET ?"
+            params += (offset,)
+
         return self._fetch(query, params)
 
 
@@ -59,26 +79,21 @@ class Element(NamedTuple):
 
 class ElementsDatabaseManager(DatabaseManager[Element]):
     def __init__(self, db_path):
-        super().__init__(db_path)
-        self._TABLE = "elements"
+        super().__init__(db_path, "elements")
 
     def add_element(self, name: str, emoji: str):
-        self._insert_record(self._TABLE, ("id", name), ("name", name), ("emoji", emoji))
+        self._insert_record(("id", name), ("name", name), ("emoji", emoji))
 
     def get_element(self, id: str):
-        records = self._get_records(self._TABLE, condition="id = ?", params=(id,))
+        records = self._get_records(condition="id = ?", params=(id,))
         return Element(*records[0]) if records else None
 
     def bulk_add_elements(self, elements: list[tuple[str, str]]):
-        records = [(element_id, element_id, emoji) for element_id, emoji in elements]
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.executemany(f"INSERT INTO {self._TABLE} (id, name, emoji) VALUES (?, ?, ?)", records)
-            conn.commit()
+        records = [Element(element_id, element_id, emoji) for element_id, emoji in elements]
+        self._insert_records(("id", "name", "emoji"), records)
 
     def get_all_elements(self, offset: int = 0, limit: int = 100):
-        query = f"SELECT id, name, emoji FROM {self._TABLE} LIMIT ? OFFSET ?"
-        records = self._fetch(query, (limit, offset))
+        records = self._get_records(limit=limit, offset=offset)
         return [Element(*record) for record in records]
 
 
@@ -91,17 +106,16 @@ class Recipe(NamedTuple):
 
 class RecipesDatabaseManager(DatabaseManager[Recipe]):
     def __init__(self, db_path):
-        super().__init__(db_path)
-        self._TABLE = "recipes"
+        super().__init__(db_path, "recipes")
 
     def add_recipes(self, a: str, b: str, result: str):
         if a > b:
             a, b = b, a
         id = f"{a}={b}"
-        self._insert_record(self._TABLE, ("id", id), ("a", a), ("b", b), ("result", result))
+        self._insert_record(("id", id), ("a", a), ("b", b), ("result", result))
 
-    def get_recipes(self, name: str):
-        records = self._get_records(self._TABLE, condition="name = ?", params=(name,))
+    def get_recipes(self, result: str):
+        records = self._get_records(condition="result = ?", params=(result,))
         return [Recipe(*record) for record in records] if records else None
 
     def bulk_add_recipes(self, recipes: list[tuple[str, str, str]]):
@@ -112,9 +126,4 @@ class RecipesDatabaseManager(DatabaseManager[Recipe]):
             id = f"{a}={b}"
             records.append(Recipe(id, a, b, result))
 
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.executemany(
-                f"INSERT INTO {self._TABLE} (id, a, b, result) VALUES (?, ?, ?, ?)", records
-            )
-            conn.commit()
+        self._insert_records(("id", "a", "b", "result"), records)
