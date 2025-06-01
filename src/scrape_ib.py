@@ -1,9 +1,8 @@
 import requests
-import urllib.parse
 import time
 import logging
 
-from typing import TypedDict
+from infinibrowser import types, Infinibrowser
 
 from storage.database_manager import ElementsDatabaseManager, RecipesDatabaseManager
 
@@ -11,27 +10,17 @@ from storage.database_manager import ElementsDatabaseManager, RecipesDatabaseMan
 logger = logging.getLogger(__name__)
 
 
-class ApiElement(TypedDict):
-    id: str
-    emoji: str
-
-
-class ApiResponseData(TypedDict):
-    recipes: list[tuple[ApiElement, ApiElement]]
-
-
-def fetch_recipes(element_db: str) -> ApiResponseData:
+def fetch_recipes(element_db: str) -> list[types.Recipe]:
     MAX_RETRIES = 3
     RETRY_DELAYS = (0.1, 0.15)
 
-    url = f"https://infinibrowser.wiki/api/recipes?id={urllib.parse.quote(element_db)}"
-
     for retries in range(MAX_RETRIES + 1):
         try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 429:
+            data = Infinibrowser.get_recipes(element_db)
+            return data.recipes
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
                 if retries < MAX_RETRIES:
                     delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
                     logger.warning(f"Rate limited. Retrying in {delay} seconds...")
@@ -39,21 +28,21 @@ def fetch_recipes(element_db: str) -> ApiResponseData:
                     continue
                 else:
                     logger.error(
-                        f"[{response.status_code}] {response.reason}. "
+                        f"[{e.response.status_code}] {e.response.reason}. "
                         f"Error fetching recipes for element {element_db} after multiple retries"
                     )
-                    return {"recipes": []}
-            elif response.status_code == 404:
+                    return []
+            elif e.response.status_code == 404:
                 logger.error(
-                    f"[{response.status_code}] {response.reason}. Element {element_db} not found"
+                    f"[{e.response.status_code}] {e.response.reason}. Element {element_db} not found"
                 )
-                return {"recipes": []}
+                return []
             else:
                 logger.error(
-                    f"[{response.status_code}] {response.reason}. "
+                    f"[{e.response.status_code}] {e.response.reason}. "
                     f"Error fetching recipes for element {element_db}"
                 )
-                return {"recipes": []}
+                return []
 
         except requests.exceptions.RequestException as e:
             if retries < MAX_RETRIES:
@@ -65,9 +54,9 @@ def fetch_recipes(element_db: str) -> ApiResponseData:
                 logger.error(
                     f"Error fetching recipes for element {element_db} after multiple retries: {e}"
                 )
-                return {"recipes": []}
+                return []
 
-    return {"recipes": []}
+    return []
 
 
 def scrape(db_path: str, offset: int, limit: int):
@@ -79,8 +68,7 @@ def scrape(db_path: str, offset: int, limit: int):
     for i, element_db in enumerate(all_elements, offset):
         element_db_name = element_db[0]
         try:
-            recipes_data = fetch_recipes(element_db_name)
-            recipes = recipes_data.get("recipes", [])
+            recipes = fetch_recipes(element_db_name)
             if not recipes:
                 continue
 
@@ -90,22 +78,20 @@ def scrape(db_path: str, offset: int, limit: int):
             for recipe_pair in recipes:
                 try:
                     first_element = recipe_pair[0]
-                    first_element_id = first_element["id"]
-                    first_element_db = elements_db_manager.get_element(first_element_id)
+                    first_element_db = elements_db_manager.get_element(first_element.id)
 
                     if not first_element_db:
-                        missing_elements.append((first_element_id, first_element["emoji"]))
+                        missing_elements.append((first_element.id, first_element.emoji))
 
                     second_element = recipe_pair[1]
-                    second_element_id = second_element["id"]
-                    second_element_db = elements_db_manager.get_element(second_element_id)
+                    second_element_db = elements_db_manager.get_element(second_element.id)
 
                     if not second_element_db:
-                        missing_elements.append((second_element_id, second_element["emoji"]))
+                        missing_elements.append((second_element.id, second_element.emoji))
 
                     result_element_name = element_db[1]  # element[1] is the name of the element
 
-                    recipes_to_add.append((first_element_id, second_element_id, result_element_name))
+                    recipes_to_add.append((first_element.id, second_element.id, result_element_name))
 
                 except Exception as e:
                     logger.error(f"Error processing recipe: {recipe_pair}. Error: {e}")
