@@ -1,111 +1,25 @@
-import requests
-import time
 import logging
 
 from infinibrowser import types, Infinibrowser
 
 from storage.database_manager import ElementsDatabaseManager, RecipesDatabaseManager
 
+from error_handler import with_retries
+
 
 logger = logging.getLogger(__name__)
 
 
+@with_retries(func_name="recipes")
 def fetch_recipes(element_db: str) -> list[types.Recipe]:
-    MAX_RETRIES = 3
-    RETRY_DELAYS = (0.1, 0.15)
-
-    for retries in range(MAX_RETRIES + 1):
-        try:
-            data = Infinibrowser.get_recipes(element_db)
-            return data.recipes
-
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                if retries < MAX_RETRIES:
-                    delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
-                    logger.warning(f"Rate limited. Retrying in {delay} seconds...")
-                    time.sleep(delay)
-                    continue
-                else:
-                    logger.error(
-                        f"[{e.response.status_code}] {e.response.reason}. "
-                        f"Error fetching recipes for element {element_db} after multiple retries"
-                    )
-                    return []
-            elif e.response.status_code == 404:
-                logger.error(
-                    f"[{e.response.status_code}] {e.response.reason}. Element {element_db} not found"
-                )
-                return []
-            else:
-                logger.error(
-                    f"[{e.response.status_code}] {e.response.reason}. "
-                    f"Error fetching recipes for element {element_db}"
-                )
-                return []
-
-        except requests.exceptions.RequestException as e:
-            if retries < MAX_RETRIES:
-                delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
-                logger.warning(f"Request failed ({e}). Retrying in {delay} seconds...")
-                time.sleep(delay)
-                continue
-            else:
-                logger.error(
-                    f"Error fetching recipes for element {element_db} after multiple retries: {e}"
-                )
-                return []
-
-    return []
+    data = Infinibrowser.get_recipes(element_db)
+    return data.recipes
 
 
+@with_retries(func_name="uses")
 def fetch_uses(element_db: str) -> list[types.Use]:
-    MAX_RETRIES = 3
-    RETRY_DELAYS = (0.1, 0.15)
-
-    for retries in range(MAX_RETRIES + 1):
-        try:
-            data = Infinibrowser.get_uses(element_db)
-            return data.uses
-
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                if retries < MAX_RETRIES:
-                    delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
-                    logger.warning(f"Rate limited. Retrying in {delay} seconds...")
-                    time.sleep(delay)
-                    continue
-                else:
-                    logger.error(
-                        f"[{e.response.status_code}] {e.response.reason}. "
-                        f"Error fetching uses for element {element_db} after multiple retries"
-                    )
-                    return []
-            elif e.response.status_code == 404:
-                logger.error(
-                    f"[{e.response.status_code}] {e.response.reason}. Element {element_db} not found"
-                )
-                return []
-            else:
-                logger.error(
-                    f"[{e.response.status_code}] {e.response.reason}. "
-                    f"Error fetching uses for element {element_db}"
-                )
-                return []
-
-        except requests.exceptions.RequestException as e:
-            if retries < MAX_RETRIES:
-                delay = RETRY_DELAYS[min(retries, len(RETRY_DELAYS) - 1)]
-                logger.warning(f"Request failed ({e}). Retrying in {delay} seconds...")
-                time.sleep(delay)
-                continue
-            else:
-                logger.error(
-                    f"Error fetching uses for element {element_db} after multiple retries: {e}"
-                )
-                return []
-
-    return []
+    data = Infinibrowser.get_uses(element_db)
+    return data.uses
 
 
 def scrape(db_path: str, offset: int, limit: int):
@@ -115,10 +29,10 @@ def scrape(db_path: str, offset: int, limit: int):
     all_elements = elements_db_manager.get_all_elements(offset=offset, limit=limit)
 
     for i, element_db in enumerate(all_elements, offset):
-        element_db_name = element_db[0]
         try:
-            uses = fetch_uses(element_db_name)
+            uses = fetch_uses(element_db.name)
             if not uses:
+                logger.info(f"Skipping {element_db.name} (no uses)")
                 continue
 
             recipes_to_add: list[tuple[str, str, str]] = []
@@ -132,7 +46,13 @@ def scrape(db_path: str, offset: int, limit: int):
                     if not used_with_element_db:
                         missing_elements.append((used_with_element.id, used_with_element.emoji))
 
-                    recipes_to_add.append((element_db_name, used_with_element.id, use.result.id))
+                    result_element = use.pair
+                    result_element_db = elements_db_manager.get_element(result_element.id)
+
+                    if not result_element_db:
+                        missing_elements.append((result_element.id, result_element.emoji))
+
+                    recipes_to_add.append((element_db.name, used_with_element.id, use.result.id))
 
                 except Exception as e:
                     logger.error(f"Error processing recipe: {use}. Error: {e}")
@@ -151,8 +71,8 @@ def scrape(db_path: str, offset: int, limit: int):
                 recipes_db_manager.bulk_add_recipes(recipes_to_add)
                 logger.info(f"Successfully added uses for {element_db.name}")
             except Exception as e:
-                logger.error(f"Error adding uses to database: {e}")
+                logger.error(f"Error adding uses for {element_db.name} to database: {e}")
 
         except KeyboardInterrupt:
-            logger.warning(f"Interrupted at {i:_}, element_db_name={element_db_name}")
+            logger.warning(f"Interrupted at {i:_} for {element_db.name}")
             return

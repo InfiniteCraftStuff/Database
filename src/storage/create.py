@@ -43,7 +43,11 @@ def main():
         create_table(
             conn,
             "elements",
-            (("id", "TEXT", "PRIMARY KEY"), ("name", "TEXT", "NOT NULL"), ("emoji", "TEXT", None)),
+            (
+                ("id", "TEXT", "PRIMARY KEY"),
+                ("name", "TEXT", "NOT NULL"),
+                ("emoji", "TEXT", None),
+            ),
         )
 
         create_table(
