@@ -1,6 +1,6 @@
 import sqlite3
 from typing import NamedTuple, LiteralString, Generic, TypeVar
-from collections.abc import Sequence
+from collections.abc import Iterable
 
 
 Params = tuple[int | float | str | None, ...]
@@ -22,7 +22,7 @@ class DatabaseManager(Generic[TSchema]):
             cursor.execute(query, params)
             conn.commit()
 
-    def _executemany(self, query: LiteralString, seq_of_params: Sequence[Params]):
+    def _executemany(self, query: LiteralString, seq_of_params: Iterable[Params]):
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.executemany(query, seq_of_params)
@@ -43,7 +43,7 @@ class DatabaseManager(Generic[TSchema]):
         query = f"INSERT INTO {self._TABLE} ({col_names}) VALUES ({placeholders})"
         self._execute(query, params)
 
-    def _insert_records(self, columns: tuple[LiteralString, ...], records: Sequence[TSchema]):
+    def _insert_records(self, columns: tuple[LiteralString, ...], records: Iterable[TSchema]):
         columns_str = ", ".join(columns)
         placeholders = ", ".join("?" for _ in columns)
         query = f"INSERT OR IGNORE INTO {self._TABLE} ({columns_str}) VALUES ({placeholders})"
@@ -78,7 +78,7 @@ class Element(NamedTuple):
 
 
 class ElementsDatabaseManager(DatabaseManager[Element]):
-    def __init__(self, db_path):
+    def __init__(self, db_path: str):
         super().__init__(db_path, "elements")
 
     def add_element(self, name: str, emoji: str):
@@ -105,7 +105,7 @@ class Recipe(NamedTuple):
 
 
 class RecipesDatabaseManager(DatabaseManager[Recipe]):
-    def __init__(self, db_path):
+    def __init__(self, db_path: str):
         super().__init__(db_path, "recipes")
 
     def add_recipes(self, a: str, b: str, result: str):

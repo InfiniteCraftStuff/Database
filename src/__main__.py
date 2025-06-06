@@ -2,7 +2,7 @@ import os
 
 import logging
 
-from savefile_processor import process  # noqa: F401
+from savefile_processor import process  # type: ignore # noqa: F401
 from scrape_ib import scrape  # noqa: F401
 
 
@@ -21,7 +21,7 @@ logging.basicConfig(
 
 
 def main():
-    OFFSET = 97_050
+    OFFSET = 259_495
     LIMIT = 1_000_000 - OFFSET
 
     scrape(DB_PATH, OFFSET, LIMIT)
