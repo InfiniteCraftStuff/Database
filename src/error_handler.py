@@ -18,7 +18,9 @@ def with_retries(max_retries: int = 3, delay: float = 0.1, func_name: str | None
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
             for_args_str = f"for {', '.join(str(arg) for arg in args)}"
-            error_log = f"Error getting {func_name} {for_args_str}" if func_name else f"Error for {args}"
+            error_log = (
+                f"Error getting {func_name} {for_args_str}" if func_name else f"Error for {args}"
+            )
 
             for attempt in range(max_retries + 1):
                 try:
@@ -29,7 +31,9 @@ def with_retries(max_retries: int = 3, delay: float = 0.1, func_name: str | None
                     reason = e.response.reason
 
                     if code == 429 and attempt < max_retries:
-                        logger.warning(f"Ratelimited {for_args_str}. Retrying in {delay} seconds...")
+                        logger.warning(
+                            f"Ratelimited {for_args_str}. Retrying in {delay} seconds..."
+                        )
                         time.sleep(delay)
                         continue
 

@@ -2,8 +2,10 @@ import os
 
 import logging
 
+
 from savefile_processor import process  # type: ignore # noqa: F401
-from scrape_ib import scrape  # noqa: F401
+from bestrecipes_processor import process as bestrecipes_process  # type: ignore # noqa: F401
+from scrape_ib import scrape  # type: ignore # noqa: F401
 
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,10 +23,15 @@ logging.basicConfig(
 
 
 def main():
-    OFFSET = 259_495
-    LIMIT = 1_000_000 - OFFSET
+    # OFFSET = 259_495
+    # LIMIT = 1_000_000 - OFFSET
 
-    scrape(DB_PATH, OFFSET, LIMIT)
+    # scrape(DB_PATH, OFFSET, LIMIT)
+
+    bestrecipes_process(
+        r"C:\Users\roman\OneDrive\Personal\dev\InfiniteCraftStuff\scrapers\recipes\bestrecipes.jsonl",
+        DB_PATH,
+    )
 
 
 if __name__ == "__main__":
