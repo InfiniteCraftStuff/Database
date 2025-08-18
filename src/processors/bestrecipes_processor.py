@@ -2,7 +2,7 @@ import json
 from storage.database_manager import RecipesDatabaseManager
 
 
-def process(file_path: str, db_path: str):
+def process(file_path: str, db_path: str, batch_size: int = 250_000):
     recipes_db_manager = RecipesDatabaseManager(db_path)
 
     batch: list[tuple[str, str, str]] = []
@@ -14,7 +14,7 @@ def process(file_path: str, db_path: str):
             # Collect batch for DB insertion
             batch.append(recipe)
 
-            if len(batch) >= 250_000:
+            if len(batch) >= batch_size:
                 print("\nAdding batch")
                 recipes_db_manager.bulk_add_recipes(batch)
                 print("Batch added")

@@ -56,5 +56,6 @@ class RecipesDatabaseManager(DatabaseManager[Recipe]):
                 a, b = b, a
             id = f"{a}={b}"
             records.append(Recipe(id, a, b, result))
+        print(f"Adding {len(records)} records")
 
         self._insert_records(("id", "a", "b", "result"), records)

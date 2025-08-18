@@ -3,9 +3,7 @@ import os
 import logging
 
 
-from savefile_processor import process  # type: ignore # noqa: F401
-from bestrecipes_processor import process as bestrecipes_process  # type: ignore # noqa: F401
-from scrape_ib import scrape  # type: ignore # noqa: F401
+from processors.emojis_processor import process as process_emojis
 
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,13 +21,8 @@ logging.basicConfig(
 
 
 def main():
-    # OFFSET = 259_495
-    # LIMIT = 1_000_000 - OFFSET
-
-    # scrape(DB_PATH, OFFSET, LIMIT)
-
-    bestrecipes_process(
-        r"C:\Users\roman\OneDrive\Personal\dev\InfiniteCraftStuff\scrapers\recipes\bestrecipes.jsonl",
+    process_emojis(
+        "C:/Users/roman/OneDrive/Personal/dev/InfiniteCraftStuff/scrapers/recipes/emojis.json",
         DB_PATH,
     )
 

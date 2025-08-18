@@ -23,7 +23,8 @@ def process(file_path: str, db_path: str):
 
     len_elements = len(elements)
 
-    batch_size = len_elements // 5000
+    number_of_batches = 5000
+    batch_size = len_elements // number_of_batches
 
     for i in range(0, len_elements, batch_size):
         print(f"Processing batch {i // batch_size}")
