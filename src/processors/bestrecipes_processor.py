@@ -1,5 +1,6 @@
 import json
-from storage.database_manager import RecipesDatabaseManager
+
+from ..storage.database_manager import RecipesDatabaseManager
 
 
 def process(file_path: str, db_path: str, batch_size: int = 250_000):

@@ -1,5 +1,6 @@
 import json
-from storage.database_manager import ElementsDatabaseManager
+
+from ..storage.database_manager import ElementsDatabaseManager
 
 
 def process(file_path: str, db_path: str):

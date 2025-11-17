@@ -2,9 +2,9 @@ import logging
 
 from infinibrowser import types, Infinibrowser
 
-from storage.database_manager import ElementsDatabaseManager, RecipesDatabaseManager
+from ..storage.database_manager import ElementsDatabaseManager, RecipesDatabaseManager
 
-from error_handler import with_retries
+from .error_handler import with_retries
 
 
 logger = logging.getLogger(__name__)

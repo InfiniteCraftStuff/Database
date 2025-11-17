@@ -1,2 +1,1 @@
 infinibrowser==0.1.3
-managerdb==0.0.2

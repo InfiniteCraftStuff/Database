@@ -1,5 +1,6 @@
 from typing import NamedTuple
-from managerdb import DatabaseManager
+
+from .db_manager import DatabaseManager
 
 
 class Element(NamedTuple):

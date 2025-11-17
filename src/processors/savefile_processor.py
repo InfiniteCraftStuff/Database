@@ -1,6 +1,7 @@
 import json
 from typing import TypedDict
-from storage.database_manager import ElementsDatabaseManager
+
+from ..storage.database_manager import ElementsDatabaseManager
 
 
 class Element(TypedDict):
