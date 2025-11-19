@@ -13,3 +13,6 @@ dist/
 /storage/
 
 __pycache__/
+
+
+node_modules/
