@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { process as process_emojis } from "./processors/emojis_processor";
+import { process_emojis } from "~/processors";
 
 const SRC_DIR = import.meta.dir;
 const BASE_DIR = path.dirname(SRC_DIR);

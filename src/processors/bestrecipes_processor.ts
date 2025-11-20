@@ -1,6 +1,6 @@
-import { RecipesDatabaseManager } from "~/storage/database_manager";
+import { RecipesDatabaseManager } from "~/db_manager";
 
-export async function process(
+export async function process_bestrecipes(
   file_path: string,
   db_path: string,
   batch_size: number = 250_000

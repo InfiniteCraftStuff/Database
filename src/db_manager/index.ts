@@ -1,9 +1,9 @@
 import { DatabaseManager } from "./db_manager";
 
 type DB_IB_Element = {
-  id: string;
-  name: string;
-  emoji: string;
+  readonly id: string;
+  readonly name: string;
+  readonly emoji: string;
 };
 
 export class ElementsDatabaseManager extends DatabaseManager<
@@ -23,7 +23,7 @@ export class ElementsDatabaseManager extends DatabaseManager<
     return element;
   }
 
-  bulk_add_elements(elements: readonly [string, string][]): void {
+  bulk_add_elements(elements: readonly (readonly [string, string])[]): void {
     const records = elements.map<DB_IB_Element>(([element_id, emoji]) => ({
       id: element_id,
       name: element_id,
@@ -32,17 +32,23 @@ export class ElementsDatabaseManager extends DatabaseManager<
     this._insert_records(["id", "name", "emoji"], records);
   }
 
-  get_all_elements(offset: number = 0, limit: number = 100): DB_IB_Element[] {
-    const elements = this._get_records({ limit, offset });
+  get_all_elements(options?: {
+    offset?: number;
+    limit?: number;
+  }): DB_IB_Element[] {
+    const elements = this._get_records({
+      limit: options?.limit ?? 100,
+      offset: options?.offset ?? 0,
+    });
     return elements;
   }
 }
 
 type DB_IB_Recipe = {
-  id: string;
-  a: string;
-  b: string;
-  result: string;
+  readonly id: string;
+  readonly a: string;
+  readonly b: string;
+  readonly result: string;
 };
 
 export class RecipesDatabaseManager extends DatabaseManager<
@@ -69,7 +75,9 @@ export class RecipesDatabaseManager extends DatabaseManager<
     return recipes.length ? recipes : null;
   }
 
-  bulk_add_recipes(recipes: [string, string, string][]): void {
+  bulk_add_recipes(
+    recipes: readonly (readonly [string, string, string])[]
+  ): void {
     const records: DB_IB_Recipe[] = [];
     for (let [a, b, result] of recipes) {
       if (a > b) {

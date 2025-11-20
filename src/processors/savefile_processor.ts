@@ -1,9 +1,10 @@
-import { ElementsDatabaseManager } from "~/storage/database_manager";
+import * as z from "zod";
 
-type IC_Savefile_Element = {
-  text: string;
-  emoji: string;
-};
+import { ElementsDatabaseManager } from "~/db_manager";
+
+const SavefileSchema = z.object({
+  elements: z.array(z.object({ text: z.string(), emoji: z.string() })),
+});
 
 async function load_json(file_path: string) {
   const file = Bun.file(file_path);
@@ -12,12 +13,12 @@ async function load_json(file_path: string) {
   return data;
 }
 
-export async function process(file_path: string, db_path: string) {
+export async function process_savefile(file_path: string, db_path: string) {
   const elements_db_manager = new ElementsDatabaseManager(db_path);
 
-  const data = await load_json(file_path);
+  const data = SavefileSchema.parse(await load_json(file_path));
 
-  const elements: IC_Savefile_Element[] = data.elements;
+  const elements = data.elements;
 
   const len_elements = elements.length;
 
