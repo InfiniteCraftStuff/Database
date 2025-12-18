@@ -1,6 +1,6 @@
-export function with_retries(max_retries: number = 3, delay: number = 100) {
+export function withRetries(max_retries: number = 3, delay: number = 100) {
   function decorator<TArgs extends unknown[], TReturn extends Promise<unknown>>(
-    func: (...args: TArgs) => TReturn
+    func: (...args: TArgs) => TReturn,
   ) {
     async function wrapper(...args: TArgs): Promise<TReturn | null> {
       const for_args_str = `for ${args.join(", ")}` as const;

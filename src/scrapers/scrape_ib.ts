@@ -2,26 +2,32 @@ import { ib } from "infinibrowser";
 
 import { ElementsDatabaseManager, RecipesDatabaseManager } from "~/db_manager";
 
-import { with_retries } from "./error_handler";
+import { withRetries } from "./error_handler";
 
-const fetch_recipes = with_retries()(async function fetch_recipes(
-  element_db: string
+const fetchRecipes = withRetries()(async function fetchRecipes(
+  element_db: string,
 ) {
-  const data = await ib.getRecipes(element_db);
-  return data.recipes;
+  const response = await ib.getRecipes(element_db);
+  if (response.ok) return response.data.recipes;
+  if (response.error_code === "NOT_OK") {
+    throw new Error(`HTTP Error: ${response.response.statusText}`);
+  }
+  throw response.error;
 });
 
-const fetch_uses = with_retries()(async function fetch_uses(
-  element_db: string
-) {
-  const data = await ib.getUses(element_db);
-  return data.uses;
+const fetchUses = withRetries()(async function fetchUses(element_db: string) {
+  const response = await ib.getUses(element_db);
+  if (response.ok) return response.data.uses;
+  if (response.error_code === "NOT_OK") {
+    throw new Error(`HTTP Error: ${response.response.statusText}`);
+  }
+  throw response.error;
 });
 
 export async function scrape_ib(
   db_path: string,
   offset: number,
-  limit: number
+  limit: number,
 ) {
   const elements_db_manager = new ElementsDatabaseManager(db_path);
   const recipes_db_manager = new RecipesDatabaseManager(db_path);
@@ -31,7 +37,7 @@ export async function scrape_ib(
   let i = offset;
   for (const element_db of all_elements) {
     i++;
-    const uses = await fetch_uses(element_db.name);
+    const uses = await fetchUses(element_db.name);
     if (!uses) {
       console.info("Skipping {element_db.name} (no uses)");
       continue;
@@ -43,7 +49,7 @@ export async function scrape_ib(
       try {
         const used_with_element = use.pair;
         const used_with_element_db = elements_db_manager.get_element(
-          used_with_element.id
+          used_with_element.id,
         );
         if (!used_with_element_db)
           missing_elements.push([
@@ -52,7 +58,7 @@ export async function scrape_ib(
           ]);
         const result_element = use.pair;
         const result_element_db = elements_db_manager.get_element(
-          result_element.id
+          result_element.id,
         );
         if (!result_element_db)
           missing_elements.push([result_element.id, result_element.emoji]);
@@ -82,7 +88,7 @@ export async function scrape_ib(
       console.info(`Successfully added uses for ${element_db.name}`);
     } catch (e) {
       console.error(
-        `Error adding uses for ${element_db.name} to database: ${e}`
+        `Error adding uses for ${element_db.name} to database: ${e}`,
       );
     }
   }

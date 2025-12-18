@@ -5,7 +5,7 @@ type Params = Param[];
 
 export class DatabaseManager<
   TSchema extends Record<string, string>,
-  TTable extends string
+  TTable extends string,
 > {
   readonly db_path: string;
   private readonly _TABLE: TTable;
@@ -33,7 +33,7 @@ export class DatabaseManager<
 
   protected _insert_records(
     columns: readonly (keyof TSchema)[],
-    records: readonly TSchema[]
+    records: readonly TSchema[],
   ): void {
     const columns_str = columns.join(", ");
     const placeholders = Array(columns.length).fill("?").join(", ");

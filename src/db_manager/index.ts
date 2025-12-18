@@ -76,7 +76,7 @@ export class RecipesDatabaseManager extends DatabaseManager<
   }
 
   bulk_add_recipes(
-    recipes: readonly (readonly [string, string, string])[]
+    recipes: readonly (readonly [string, string, string])[],
   ): void {
     const records: DB_IB_Recipe[] = [];
     for (let [a, b, result] of recipes) {

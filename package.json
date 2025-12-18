@@ -3,11 +3,11 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "infinibrowser": "^0.4.1",
-    "zod": "^4.1.12"
+    "infinibrowser": "^0.7.0",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.2",
+    "@types/bun": "^1.3.5",
     "typescript": "^5.9.3"
   }
 }
