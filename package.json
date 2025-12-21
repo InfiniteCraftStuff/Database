@@ -2,8 +2,10 @@
   "name": "database",
   "type": "module",
   "private": true,
+  "scripts": {
+    "do": "bun ./src"
+  },
   "dependencies": {
-    "infinibrowser": "^0.7.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {

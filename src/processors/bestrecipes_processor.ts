@@ -1,16 +1,20 @@
+import * as z from "zod";
+
 import { RecipesDatabaseManager } from "~/db_manager";
 
-export async function process_bestrecipes(
+const RecipeSchema = z.tuple([z.string(), z.string(), z.string()]);
+
+export async function process_jsonl_recipes(
   file_path: string,
   db_path: string,
   batch_size: number = 250_000,
 ) {
   const recipes_db_manager = new RecipesDatabaseManager(db_path);
-  const batch: [string, string, string][] = [];
+  const batch: (readonly [string, string, string])[] = [];
   const file = Bun.file(file_path);
   const lines = (await file.text()).split("\n");
   for (const line of lines) {
-    const recipe: [string, string, string] = JSON.parse(line);
+    const recipe = RecipeSchema.parse(JSON.parse(line));
 
     // Collect batch for DB insertion
     batch.push(recipe);
