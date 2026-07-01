@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { ElementsDatabaseManager } from "~/db_manager";
+import { ElementsDatabaseManager } from "#db-manager";
 
 const EmojiFileSchema = z.record(z.string(), z.string());
 

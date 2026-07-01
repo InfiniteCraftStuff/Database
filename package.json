@@ -2,14 +2,19 @@
   "name": "database",
   "type": "module",
   "private": true,
+  "imports": {
+    "#db-manager": "./src/db-manager/index.ts"
+  },
   "scripts": {
     "do": "bun ./src"
   },
   "dependencies": {
-    "zod": "^4.2.1"
+    "savefile.js": "0.0.5",
+    "zod": "4.2.1"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.5",
-    "typescript": "^5.9.3"
+    "@gameroman/config": "0.2.2",
+    "@types/bun": "1.3.14",
+    "typescript": "6.0.3"
   }
 }

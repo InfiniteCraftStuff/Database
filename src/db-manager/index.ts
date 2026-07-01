@@ -1,4 +1,4 @@
-import { DatabaseManager } from "./db_manager";
+import { DatabaseManager } from "./db-manager";
 
 type DB_IB_Element = {
   readonly id: string;

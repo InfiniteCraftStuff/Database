@@ -1,21 +1,10 @@
-import { RecipesDatabaseManager } from "~/db_manager";
+import * as z from "zod";
 
-const extractRecipe = (line: string) => {
-  const recipe = line.split("=");
+import { RecipesDatabaseManager } from "#db-manager";
 
-  if (
-    recipe.length !== 3 ||
-    typeof recipe[0] !== "string" ||
-    typeof recipe[1] !== "string" ||
-    typeof recipe[2] !== "string"
-  ) {
-    throw new Error("Invalid recipe format");
-  }
+const RecipeSchema = z.tuple([z.string(), z.string(), z.string()]);
 
-  return [recipe[0], recipe[1], recipe[2]] as const;
-};
-
-export async function process_csv_recipes(
+export async function process_jsonl_recipes(
   file_path: string,
   db_path: string,
   batch_size: number = 250_000,
@@ -25,7 +14,7 @@ export async function process_csv_recipes(
   const file = Bun.file(file_path);
   const lines = (await file.text()).split("\n");
   for (const line of lines) {
-    const recipe = extractRecipe(line);
+    const recipe = RecipeSchema.parse(JSON.parse(line));
 
     // Collect batch for DB insertion
     batch.push(recipe);

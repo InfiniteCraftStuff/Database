@@ -5,7 +5,7 @@ import {
   process_jsonl_recipes,
   process_emojis,
   process_savefile,
-} from "~/processors";
+} from "./processors";
 
 const SRC_DIR = import.meta.dir;
 const BASE_DIR = path.dirname(SRC_DIR);
@@ -43,7 +43,7 @@ async function main() {
 
 await main()
   .catch((err: unknown) => {
-    if (!(err instanceof Error)) throw err;
+    if (!Error.isError(err)) throw err;
     console.error(err.message);
   })
   .finally(() => process.exit(0));
